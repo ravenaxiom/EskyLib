@@ -1,244 +1,264 @@
 /*****************************************************************************
 
-    EskyLib-0.3
-    -----------
+    EskyLib.js
+    ----------
 
-    A container for setting up a THREE.js scene, controls, and draw/logic loops.
-
-    To use, create a new Eskylib() object with all the below variables.
-    Then call Eskylib.startDrawing() to begin the draw/logic loops.
-
-
-    Takes the following arguments:
-        container           ID of container to use for drawing
-        width               Width of area to render, in pixels
-        height              Height of area to render, in pixels
-        drawFunc            External drawing function, called each game loop
-        logicFunc           External logic function, called each game loop
-        clearColour         Colour to use to clear the drawing area each frame   
+    See README.md for documentation
 
 *****************************************************************************/
 
 
-var EskyLib = function(container, width, height, drawLoopFunc, logicLoopFunc, clearCol) {
+var EskyLib = function (args) {
+    'use strict';
+    var _this = this;
 
-    this.container = undefined;                 // DOM object container (div)
+    try {
+        // initialize the class
+        _this.initializeVariables();
+        _this.parseArguments(args);
+        _this.setupRendering();
+        _this.setupControls();
 
-    this.drawLoopFunction = undefined;          // function for drawing
-    this.logicLoopFunction = undefined;         // function for logic
+        // setup the user scene and start the render loop
+        _this.runSetupFunction();
+        _this.startDrawingLogicLoop();
+    } catch (exception) {
+        console.error("EskyLib Exception: " + exception);
+    }
+};
 
-    this.clearColour = 0x000000;                // screen clear colour
 
-    this.WIDTH = 0;                             // camera setup
-    this.HEIGHT = 0;
-    this.VIEW_ANGLE = 45;
-    this.ASPECT = 0; 
-    this.NEAR = 0.1;
-    this.FAR = 10000;
+EskyLib.prototype.initializeVariables = function () {
+    'use strict';
+    var _this = this;
 
-    this.renderer = undefined;                  // scene variables
-    this.camera = undefined;
-    this.scene = undefined;
+    _this.container = undefined;                 // DOM object container (div)
 
-    this.isPlaying = true;                      // set to false to pause logic but continue drawing
+    _this.setupFunction = undefined;            // function for setting up the scene, runs one at startup
+    _this.drawLoopFunction = undefined;         // function for drawing
+    _this.logicLoopFunction = undefined;        // function for logic
 
-    this.mouseX = 0;                            // mouse variables
-    this.mouseY = 0;
-    this.mouseClicked = false;
+    _this.clearColour = 0x000000;                // screen clear colour
 
-    this.leftPressed = false;                   // keyboard variables
-    this.rightPressed = false;
-    this.upPressed = false;
-    this.downPressed = false;
+    _this.canvasWidth = 0;                             // camera setup
+    _this.canvasHeight = 0;
+    _this.VIEW_ANGLE = 45;
+    _this.ASPECT = 0;
+    _this.NEAR = 0.1;
+    _this.FAR = 10000;
 
-    this.fpsControls = undefined;               // fps controls (mouse + keyboard look and move)
+    _this.renderer = undefined;                  // scene variables
+    _this.camera = undefined;
+    _this.scene = undefined;
 
+    _this.isPlaying = true;                      // set to false to pause logic but continue drawing
+
+    _this.mouseX = 0;                            // mouse variables
+    _this.mouseY = 0;
+    _this.mouseClicked = false;
+
+    _this.leftPressed = false;                   // keyboard variables
+    _this.rightPressed = false;
+    _this.upPressed = false;
+    _this.downPressed = false;
+
+    _this.fpsControls = undefined;               // fps controls (mouse + keyboard look and move)
+};
+
+
+EskyLib.prototype.parseArguments = function (args) {
+    'use strict';
+    var _this = this;
+
+    // make sure we have arguments to parse
+    if (args) {
+        _this.parseRequiredArguments(args);
+        _this.parseOptionalArguments(args);
+    } else {
+        throw "No arguments provided";
+    }
+};
+
+
+EskyLib.prototype.parseRequiredArguments = function (args) {
+    'use strict';
+    var _this = this;
+
+    // parse required arguments, throw an error if not provided
 
     // find the containing dom element
-    if(container) {
-        this.container = $(container);
+    if (args.container) {
+        _this.container = $(args.container);
+
+        if ((_this.container === typeof (undefined)) || (_this.container.length <= 0)) {
+            throw "Couldn't find container: " + args.container;
+        }
     } else {
         throw "No container specified.";
     }
 
-    // set the canvas size
-    if(width && height) {
-        this.WIDTH = width;
-        this.HEIGHT = height;
-    } else {
-        throw "No canvas size specified.";
-    }
-
-    // set the functions to use for drawing and logic
-    if(drawLoopFunc) {
-        this.drawLoopFunction = drawLoopFunc;
+    // set the callback functions to use for drawing and logic
+    if (args.drawLoopFunction) {
+        _this.drawLoopFunction = args.drawLoopFunction;
     } else {
         throw "No draw function specified.";
     }
+};
 
-    if(logicLoopFunc) {
-        this.logicLoopFunction = logicLoopFunc;
+
+EskyLib.prototype.parseOptionalArguments = function (args) {
+    'use strict';
+    var _this = this;
+
+    // parse optional arguments, no error if they don't exist
+
+     // set the callback function for scene setup
+    if (args.setupFunction) {
+        _this.setupFunction = args.setupFunction;
+    }
+
+    // callback function for logic loop
+    if (args.logicLoopFunction) {
+        _this.logicLoopFunction = args.logicLoopFunction;
+    }
+
+    // set the canvas size
+    if ((args.canvasWidth) && (args.canvasHeight)) {
+        _this.canvasWidth = args.canvasWidth;
+        _this.canvasHeight = args.canvasHeight;
     } else {
-        throw "No logic function specified.";
+        _this.canvasWidth = 800;
+        _this.canvasHeight = 600;
     }
 
-    // set the clear colour
-    if(clearCol) {
-        this.clearColour = clearCol;
-    }
-    else {
-        this.clearColour = 0x000000;
-    }
-
-
-    try {  
-        this.setupDrawing();                                                   
-        this.setupControls();
-
-        //this.startDrawing();
-    }
-    catch (error) {
-        throw "Eskylib Exception: " + error;
+    // set the screen clear colour
+    if (args.clearCol !== typeof 'undefined') {
+        _this.clearColour = args.clearCol;
+    } else {
+        _this.clearColour = 0x000000;
     }
 };
 
 
 // setup controls for use
-EskyLib.prototype.setupControls = function() {
-    $(document).keyup(function(event) {
+EskyLib.prototype.setupControls = function () {
+    'use strict';
+    var _this = this;
+
+    $(document).keyup(function (event) {
         var key = event.which;
 
-        if(key == 37) {
-            this.leftPressed = false;
-        }
-        else if(key == 39) {
-            this.rightPressed = false;
-        }
-        else if(key == 38) {
-            this.upPressed = false;
-        }
-        else if(key == 40) {
-            this.downPressed = false;
+        if (key === 37) {
+            _this.leftPressed = false;
+        } else if (key === 39) {
+            _this.rightPressed = false;
+        } else if (key === 38) {
+            _this.upPressed = false;
+        } else if (key === 40) {
+            _this.downPressed = false;
         }
     });
 
     // pause canvas on click
-    $("*").mousedown(function() {
-        this.mouseClicked = true;
+    $("*").mousedown(function () {
+        _this.mouseClicked = true;
     });
 
-    $("*").mouseup(function() {
-        this.mouseClicked = false;
+    $("*").mouseup(function () {
+        _this.mouseClicked = false;
     });
 
     // keep track of mouse coordinates
-    $(document).mousemove(function(e) {
+    $(document).mousemove(function (e) {
         //if(this.isPlaying) {
-            this.mouseX = e.pageX;
-            this.mouseY = e.pageY;
+        _this.mouseX = e.pageX;
+        _this.mouseY = e.pageY;
         //}
     });
-}
+};
 
 
+/* setup THREE for rendering */
+EskyLib.prototype.setupRendering = function () {
+    'use strict';
+    var _this = this;
 
-// setup canvas for drawing
-EskyLib.prototype.setupDrawing = function() {
-
-    this.ASPECT = this.WIDTH / this.HEIGHT;
+    _this.ASPECT = _this.canvasWidth / _this.canvasHeight;
 
     // scene element setup
-    this.renderer = new THREE.WebGLRenderer();
-    this.camera = new THREE.PerspectiveCamera(this.VIEW_ANGLE, this.ASPECT, this.NEAR, this.FAR);
-    this.scene = new THREE.Scene();
+    _this.renderer = new THREE.WebGLRenderer();
+    _this.camera = new THREE.PerspectiveCamera(_this.VIEW_ANGLE, _this.ASPECT, _this.NEAR, _this.FAR);
+    _this.scene = new THREE.Scene();
 
     // add camera to scene
-    this.scene.add(this.camera);
+    _this.scene.add(_this.camera);
 
     // pull camera back
-    this.camera.position.z = 300;
+    _this.camera.position.z = 300;
 
     // setup renderer size
-    this.renderer.setSize(this.WIDTH,this.HEIGHT);
+    _this.renderer.setSize(_this.WIDTH, _this.HEIGHT);
 
     // get the dom element and replace the 'viewport-container' with it
-    this.container.append(this.renderer.domElement);
+    _this.container.append(_this.renderer.domElement);
 
-    this.controls = new THREE.FirstPersonControls(this.camera);
+    //_this.controls = new THREE.FirstPersonControls(_this.camera);
 
-    this.controls.movementSpeed = 5;
-    this.controls.lookSpeed = 0.005;
-    this.controls.noFly = false;
-    this.controls.lookVertical = true;
-    this.controls.activeLook = false;
+   /* _this.controls.movementSpeed = 5;
+    _this.controls.lookSpeed = 0.005;
+    _this.controls.noFly = false;
+    _this.controls.lookVertical = true;
+    _this.controls.activeLook = false;
 
-    if(this.controls === undefined) {
-        throw "Controls error!!";
-    }
-}
-
-
-
-// nothing will be drawn until this starts
-EskyLib.prototype.startDrawing = function() {
-    // setup draw loop
-    //setInterval(this.draw, 10);
-
-
-}
-
-
-
-EskyLib.prototype.requestFrame =  (function() {
-    var lastTime = 0;
-    var vendors = ['ms', 'moz', 'webkit', 'o'];
-    for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-        window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
-        window.cancelAnimationFrame = 
-          window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
-    }
- 
-    if (!window.requestAnimationFrame)
-        window.requestAnimationFrame = function(callback, element) {
-            var currTime = new Date().getTime();
-            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-            var id = window.setTimeout(function() { callback(currTime + timeToCall); }, 
-              timeToCall);
-            lastTime = currTime + timeToCall;
-            return id;
-        };
- 
-    if (!window.cancelAnimationFrame)
-        window.cancelAnimationFrame = function(id) {
-            clearTimeout(id);
-        };
-}());
-
-
-
-// main loop
-EskyLib.prototype.draw = function() {
-
-   // if(this.container) {
-
-        /*if(this.mouseClicked) {
-            this.controls.activeLook = true;
-        } 
-        else {
-            this.controls.activeLook = false;
-        }*/
-
-       //this.controls.update(0.2);                               // update FPS controls
-
-    //    this.logicLoopFunction();
-    //    this.drawLoopFunction();
-console.log(this);
-        this.renderer.render(this.scene, this.camera);      // render the scene
-  /*  }
-    else {
-        throw new Error("Error: undefined context");
+    if (_this.controls === typeof undefined) {
+        throw "Couldn't setup controls";
     }*/
 
-    this.requestFrame(this.draw); 
-}
+};
 
+
+/* Run the provided setup function */
+EskyLib.prototype.runSetupFunction = function () {
+    'use strict';
+    var _this = this;
+
+    if (_this.setupFunction) {
+        _this.setupFunction();
+    }
+};
+
+
+/* Initialize the main drawing loop, nothing will be drawn until this starts */
+EskyLib.prototype.startDrawingLogicLoop = function () {
+    'use strict';
+    var _this = this;
+
+    window.requestAnimationFrame(_this.drawingLogicLoop);
+};
+
+
+/* Main logic/drawing loop */
+EskyLib.prototype.drawingLogicLoop = function () {
+    'use strict';
+    var _this = this;
+
+    if (_this.container) {
+        /*if (_this.mouseClicked === true) {
+            _this.controls.activeLook = true;
+        } else {
+            _this.controls.activeLook = false;
+        }
+
+        _this.controls.update(0.2);                               // update FPS controls
+*/
+ /*       if(_this.logicLoopFunction) {
+            _this.logicLoopFunction();
+        }*/
+        //_this.drawLoopFunction();
+        _this.renderer.render(_this.scene, _this.camera);      // render the scene
+    } else {
+        throw "Error: invalid container";
+    }
+
+    window.requestAnimationFrame(_this.drawingLogicLoop);
+};

@@ -10,18 +10,18 @@
 
 var EskyLib = function (args) {
     'use strict';
-    var _this = this;
+    var self = this;
 
     try {
         // initialize the class
-        _this.initializeVariables();
-        _this.parseArguments(args);
-        _this.setupRendering();
-        _this.setupControls();
+        self.initializeVariables();
+        self.parseArguments(args);
+        self.setupRendering();
+        self.setupControls();
 
         // setup the user scene and start the render loop
-        _this.runSetupFunction();
-        _this.startDrawingLogicLoop();
+        self.runSetupFunction();
+        self.startDrawingLogicLoop();
     } catch (exception) {
         console.error("EskyLib Exception: " + exception);
     }
@@ -30,50 +30,51 @@ var EskyLib = function (args) {
 
 EskyLib.prototype.initializeVariables = function () {
     'use strict';
-    var _this = this;
+    var self = this;
 
-    _this.container = undefined;                 // DOM object container (div)
+    self.container = undefined;                 // DOM object container (div)
 
-    _this.setupFunction = undefined;            // function for setting up the scene, runs one at startup
-    _this.drawLoopFunction = undefined;         // function for drawing
-    _this.logicLoopFunction = undefined;        // function for logic
+    self.setupFunction = undefined;            // function for setting up the scene, runs one at startup
+    self.drawLoopFunction = undefined;         // function for drawing
+    self.logicLoopFunction = undefined;        // function for logic
 
-    _this.clearColour = 0x000000;                // screen clear colour
+    self.clearColour = 0x000000;                // screen clear colour
 
-    _this.canvasWidth = 0;                             // camera setup
-    _this.canvasHeight = 0;
-    _this.VIEW_ANGLE = 45;
-    _this.ASPECT = 0;
-    _this.NEAR = 0.1;
-    _this.FAR = 10000;
+    self.isFullscreen = false;
+    self.canvasWidth = 0;                             // camera setup
+    self.canvasHeight = 0;
+    self.VIEW_ANGLE = 45;
+    self.ASPECT = 0;
+    self.NEAR = 0.1;
+    self.FAR = 10000;
 
-    _this.renderer = undefined;                  // scene variables
-    _this.camera = undefined;
-    _this.scene = undefined;
+    self.renderer = undefined;                  // scene variables
+    self.camera = undefined;
+    self.scene = undefined;
 
-    _this.isPlaying = true;                      // set to false to pause logic but continue drawing
+    self.isPlaying = true;                      // set to false to pause logic but continue drawing
 
-    _this.mouseX = 0;                            // mouse variables
-    _this.mouseY = 0;
-    _this.mouseClicked = false;
+    self.mouseX = 0;                            // mouse variables
+    self.mouseY = 0;
+    self.mouseClicked = false;
 
-    _this.leftPressed = false;                   // keyboard variables
-    _this.rightPressed = false;
-    _this.upPressed = false;
-    _this.downPressed = false;
+    self.leftPressed = false;                   // keyboard variables
+    self.rightPressed = false;
+    self.upPressed = false;
+    self.downPressed = false;
 
-    _this.fpsControls = undefined;               // fps controls (mouse + keyboard look and move)
+    self.fpsControls = undefined;               // fps controls (mouse + keyboard look and move)
 };
 
 
 EskyLib.prototype.parseArguments = function (args) {
     'use strict';
-    var _this = this;
+    var self = this;
 
     // make sure we have arguments to parse
     if (args) {
-        _this.parseRequiredArguments(args);
-        _this.parseOptionalArguments(args);
+        self.parseRequiredArguments(args);
+        self.parseOptionalArguments(args);
     } else {
         throw "No arguments provided";
     }
@@ -82,15 +83,15 @@ EskyLib.prototype.parseArguments = function (args) {
 
 EskyLib.prototype.parseRequiredArguments = function (args) {
     'use strict';
-    var _this = this;
+    var self = this;
 
     // parse required arguments, throw an error if not provided
 
     // find the containing dom element
     if (args.container) {
-        _this.container = $(args.container);
+        self.container = $(args.container);
 
-        if ((_this.container === typeof (undefined)) || (_this.container.length <= 0)) {
+        if ((self.container === typeof (undefined)) || (self.container.length <= 0)) {
             throw "Couldn't find container: " + args.container;
         }
     } else {
@@ -99,7 +100,7 @@ EskyLib.prototype.parseRequiredArguments = function (args) {
 
     // set the callback functions to use for drawing and logic
     if (args.drawLoopFunction) {
-        _this.drawLoopFunction = args.drawLoopFunction;
+        self.drawLoopFunction = args.drawLoopFunction;
     } else {
         throw "No draw function specified.";
     }
@@ -108,34 +109,43 @@ EskyLib.prototype.parseRequiredArguments = function (args) {
 
 EskyLib.prototype.parseOptionalArguments = function (args) {
     'use strict';
-    var _this = this;
+    var self = this;
 
     // parse optional arguments, no error if they don't exist
 
      // set the callback function for scene setup
     if (args.setupFunction) {
-        _this.setupFunction = args.setupFunction;
+        self.setupFunction = args.setupFunction;
     }
 
     // callback function for logic loop
     if (args.logicLoopFunction) {
-        _this.logicLoopFunction = args.logicLoopFunction;
+        self.logicLoopFunction = args.logicLoopFunction;
     }
 
     // set the canvas size
     if ((args.canvasWidth) && (args.canvasHeight)) {
-        _this.canvasWidth = args.canvasWidth;
-        _this.canvasHeight = args.canvasHeight;
+        self.canvasWidth = args.canvasWidth;
+        self.canvasHeight = args.canvasHeight;
     } else {
-        _this.canvasWidth = 800;
-        _this.canvasHeight = 600;
+        self.canvasWidth = 800;
+        self.canvasHeight = 600;
     }
 
     // set the screen clear colour
     if (args.clearCol !== typeof 'undefined') {
-        _this.clearColour = args.clearCol;
+        self.clearColour = args.clearCol;
     } else {
-        _this.clearColour = 0x000000;
+        self.clearColour = 0x000000;
+    }
+
+    // flag for fullscreen display
+    if ((args.isFullscreen !== typeof 'undefined') && (args.isFullscreen)) {
+        self.isFullscreen = args.isFullscreen;
+        self.canvasWidth = window.innerWidth;
+        self.canvasHeight = window.innerHeight;
+    } else {
+        self.isFullscreen = false;
     }
 };
 
@@ -143,36 +153,36 @@ EskyLib.prototype.parseOptionalArguments = function (args) {
 // setup controls for use
 EskyLib.prototype.setupControls = function () {
     'use strict';
-    var _this = this;
+    var self = this;
 
     $(document).keyup(function (event) {
         var key = event.which;
 
         if (key === 37) {
-            _this.leftPressed = false;
+            self.leftPressed = false;
         } else if (key === 39) {
-            _this.rightPressed = false;
+            self.rightPressed = false;
         } else if (key === 38) {
-            _this.upPressed = false;
+            self.upPressed = false;
         } else if (key === 40) {
-            _this.downPressed = false;
+            self.downPressed = false;
         }
     });
 
     // pause canvas on click
     $("*").mousedown(function () {
-        _this.mouseClicked = true;
+        self.mouseClicked = true;
     });
 
     $("*").mouseup(function () {
-        _this.mouseClicked = false;
+        self.mouseClicked = false;
     });
 
     // keep track of mouse coordinates
     $(document).mousemove(function (e) {
         //if(this.isPlaying) {
-        _this.mouseX = e.pageX;
-        _this.mouseY = e.pageY;
+        self.mouseX = e.pageX;
+        self.mouseY = e.pageY;
         //}
     });
 };
@@ -181,49 +191,49 @@ EskyLib.prototype.setupControls = function () {
 /* setup THREE for rendering */
 EskyLib.prototype.setupRendering = function () {
     'use strict';
-    var _this = this;
+    var self = this;
 
-    _this.ASPECT = _this.canvasWidth / _this.canvasHeight;
+    self.ASPECT = self.canvasWidth / self.canvasHeight;
 
     // scene element setup
-    _this.renderer = new THREE.WebGLRenderer();
-    _this.camera = new THREE.PerspectiveCamera(_this.VIEW_ANGLE, _this.ASPECT, _this.NEAR, _this.FAR);
-    _this.scene = new THREE.Scene();
+    self.renderer = new THREE.WebGLRenderer();
+    self.camera = new THREE.PerspectiveCamera(self.VIEW_ANGLE, self.ASPECT, self.NEAR, self.FAR);
+    self.scene = new THREE.Scene();
 
     // add camera to scene
-    _this.scene.add(_this.camera);
+    self.scene.add(self.camera);
 
     // pull camera back
-    _this.camera.position.z = 300;
+    self.camera.position.z = 300;
 
     // setup renderer size
-    _this.renderer.setSize(_this.WIDTH, _this.HEIGHT);
+    self.renderer.setSize(self.WIDTH, self.HEIGHT);
 
     // get the dom element and replace the 'viewport-container' with it
-    _this.container.append(_this.renderer.domElement);
+    self.container.append(self.renderer.domElement);
 
-    //_this.controls = new THREE.FirstPersonControls(_this.camera);
+    // setup pointer lock controls (click to enable first person camera mode)
+    self.controls = new THREE.PointerLockControls(self.camera);
 
-   /* _this.controls.movementSpeed = 5;
-    _this.controls.lookSpeed = 0.005;
-    _this.controls.noFly = false;
-    _this.controls.lookVertical = true;
-    _this.controls.activeLook = false;
+    self.controls.movementSpeed = 5;
+    self.controls.lookSpeed = 0.005;
+    self.controls.noFly = false;
+    self.controls.lookVertical = true;
+    self.controls.activeLook = false;
 
-    if (_this.controls === typeof undefined) {
-        throw "Couldn't setup controls";
-    }*/
-
+    if (self.controls === typeof undefined) {
+        throw "Couldn't setup pointer lock controls";
+    }
 };
 
 
 /* Run the provided setup function */
 EskyLib.prototype.runSetupFunction = function () {
     'use strict';
-    var _this = this;
+    var self = this;
 
-    if (_this.setupFunction) {
-        _this.setupFunction();
+    if (self.setupFunction) {
+        self.setupFunction();
     }
 };
 
@@ -231,34 +241,35 @@ EskyLib.prototype.runSetupFunction = function () {
 /* Initialize the main drawing loop, nothing will be drawn until this starts */
 EskyLib.prototype.startDrawingLogicLoop = function () {
     'use strict';
-    var _this = this;
+    var self = this;
 
-    window.requestAnimationFrame(_this.drawingLogicLoop);
+    window.requestAnimationFrame(self.drawingLogicLoop.bind(self));
 };
 
 
 /* Main logic/drawing loop */
 EskyLib.prototype.drawingLogicLoop = function () {
     'use strict';
-    var _this = this;
+    var self = this;
 
-    if (_this.container) {
-        /*if (_this.mouseClicked === true) {
-            _this.controls.activeLook = true;
-        } else {
-            _this.controls.activeLook = false;
-        }
-
-        _this.controls.update(0.2);                               // update FPS controls
-*/
- /*       if(_this.logicLoopFunction) {
-            _this.logicLoopFunction();
-        }*/
-        //_this.drawLoopFunction();
-        _this.renderer.render(_this.scene, _this.camera);      // render the scene
+    /*if (self.mouseClicked === true) {
+        self.controls.activeLook = true;
     } else {
-        throw "Error: invalid container";
+        self.controls.activeLook = false;
     }
 
-    window.requestAnimationFrame(_this.drawingLogicLoop);
+    // update FPS controls
+    self.controls.update(0.2);                               
+*/
+    // run the external draw/logic loops
+    if (self.logicLoopFunction) {
+        self.logicLoopFunction();
+    }
+    self.drawLoopFunction();
+
+    // render the scene
+    self.renderer.render(self.scene, self.camera);
+
+    // request the next frame
+    window.requestAnimationFrame(self.drawingLogicLoop.bind(self));
 };
